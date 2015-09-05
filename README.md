@@ -1,3 +1,3 @@
-### Wax
+### Hex
 
-A dead simple canvas app boilerplate. Uses Compass for SCSS compilation.
+Some hexagonal grid pathfinding stuff for a game I'm prototyping.

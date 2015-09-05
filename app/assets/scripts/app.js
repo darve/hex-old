@@ -82,15 +82,16 @@
     }
 
     function render(){
+
+        // Clear the canvas
         cx.clearRect(0, 0, w, h);
+        
+        // Draw thr grid
         drawGrid();
+
+        // Draw the lad
         dot(lad.pos.x+w/2, lad.pos.y+h/2, 2, _.fg);
         
-        // if ( lad.target !== undefined ) {
-        //     lad.pos = lad.pos.plusEq(lad.target.normalise());    
-        // }
-        
-
         if ( lad.path.length ) {
             if ( lad.pos.isCloseTo( lad.target, 0.3 ) ) {
                 console.log('node reached');
@@ -104,11 +105,7 @@
                 lad.pos.y = lad.pos.y.toFixed(3);
             }
         }
-
-        // if ( _.current !== undefined ) {
-        //     fill(_.current);    
-        // }
-        // window.requestAnimationFrame(render);
+        
     }
 
     function init() {
@@ -144,9 +141,6 @@
                 node = s.came_from[hex_to_string(node)];
             }
 
-            // lad.target = hex_to_pixel(_.layout, lol);
-            // lad.target = new Vec(lad.target.x, lad.target.y);
-
             lad.path = path;
             lad.target = hex_to_pixel(_.layout, lad.path.shift());
             lad.target = new Vec(lad.target.x.toFixed(3), lad.target.y.toFixed(3));
@@ -169,32 +163,6 @@
 
 
         window.requestAnimationFrame(render);
-    }
-
-    function breadthFirstSearch(start, maxMovement) {
-        /* see http://www.redblobgames.com/pathfinding/a-star/introduction.html */
-        var cost_so_far = d3.map(); cost_so_far.set(start, 0);
-        var came_from = d3.map(); came_from.set(start, null);
-        var fringes = [[start]];
-
-        for (var k = 0; k < maxMovement && fringes[k].length > 0; k++) {
-            fringes[k+1] = [];
-    
-            fringes[k].forEach(function(hex) {
-                for (var dir = 0; dir < 6; dir++) {
-                    
-                    var neighbor = hex_neighbor(hex, dir);
-
-                    if (!cost_so_far.has(neighbor)) {
-                        console.log('omg');
-                        cost_so_far.set(neighbor, k+1);
-                        came_from.set(neighbor, hex);
-                        fringes[k+1].push(neighbor);
-                    }
-                }
-            });
-        }
-        return {cost_so_far: cost_so_far, came_from: came_from};
     }
 
     function search( start, movement ) {
