@@ -48,9 +48,10 @@
         },
 
         lad = {
-            pos: new Point(0, 0),
-            currentHex: undefined,
-            targetHex: undefined
+            pos: new Vec(0, 0),
+            target: undefined,
+            currentHex: new Hex(0, 0, 0),
+            path: []
         };
 
     cx.lineWidth = 1;
@@ -84,6 +85,26 @@
         cx.clearRect(0, 0, w, h);
         drawGrid();
         dot(lad.pos.x+w/2, lad.pos.y+h/2, 2, _.fg);
+        
+        // if ( lad.target !== undefined ) {
+        //     lad.pos = lad.pos.plusEq(lad.target.normalise());    
+        // }
+        
+
+        if ( lad.path.length ) {
+            if ( lad.pos.isCloseTo( lad.target, 0.3 ) ) {
+                console.log('node reached');
+                lad.pos = lad.target;
+                lad.target = hex_to_pixel(_.layout, lad.path.shift());
+                lad.target = new Vec(lad.target.x, lad.target.y);
+            } else {
+                console.log('travelling', lad.pos.x, lad.pos.y, lad.target.x, lad.target.y);
+                lad.pos = lad.pos.plusEq(lad.target.normalise()).divideEq(6);
+                lad.pos.x = lad.pos.x.toFixed(3);
+                lad.pos.y = lad.pos.y.toFixed(3);
+            }
+        }
+
         // if ( _.current !== undefined ) {
         //     fill(_.current);    
         // }
@@ -106,16 +127,13 @@
         });
 
         $(c).on('click', function(e) {
+
+            // Get the hex we clicked on
             var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
 
             _.clicked = lol;
 
-            // var bfs = breadthFirstSearch(new Hex(0, 0, 0), 120);
             var s = search(Hex(0, 0, 0), 32);
-
-            console.log(s.came_from);
-
-            // console.log(bfs);
 
             // Reconstruct path to mouseover position
             var path = [];
@@ -126,58 +144,32 @@
                 node = s.came_from[hex_to_string(node)];
             }
 
-            console.log(path);
+            // lad.target = hex_to_pixel(_.layout, lol);
+            // lad.target = new Vec(lad.target.x, lad.target.y);
 
-            for ( var i in path ) {
-                fill( path[i] );
-            }
+            lad.path = path;
+            lad.target = hex_to_pixel(_.layout, lad.path.shift());
+            lad.target = new Vec(lad.target.x.toFixed(3), lad.target.y.toFixed(3));
+
+            // for ( var i in path ) {
+                // console.log(hex_to_pixel(_.layout, path[i]));
+                // fill( path[i] );
+            // }
         });
 
-        // $(doc).on('keydown', function(e){
+        $(doc).on('keydown', function(e){
 
-        //     // console.log(e.keyCode);
+            console.log(e.keyCode);
 
-        //     if ( e.keyCode === 37 ) {
-        //         applyImpulse(180, 2);
-        //     } else if ( e.keyCode === 38 ) {
-        //         applyImpulse(270, 2);
-        //     } else if ( e.keyCode === 39 ) {
-        //         applyImpulse(0, 2);
-        //     } else if ( e.keyCode === 40 ) {
-        //         applyImpulse(90, 2);
-        //     }
+            if ( e.keyCode === 32 ) {
+                window.requestAnimationFrame(render);
+            }
 
-        //     if ( e.keyCode === 65 ) {
-        //         // Left torque
-        //         applyTorque(20);
-        //     } else if ( e.keyCode === 68 ) {
-        //         // Right torque
-        //         applyTorque(20)
-        //     }
-
-        // });
+        });
 
 
         window.requestAnimationFrame(render);
     }
-
-    // function cube_reachable(start, movement) {
-    //     var visited = set()
-    //     add start to visited
-    //     var fringes = [];
-    //     fringes.append([start])
-
-    //     for each 1 < k ≤ movement:
-    //         fringes.append([])
-    //         for each cube in fringes[k-1]:
-    //             for each 0 ≤ dir < 6:
-    //                 var neighbor = cube_neighbor(cube, dir)
-    //                 if neighbor not in visited, not blocked:
-    //                     add neighbor to visited
-    //                     fringes[k].append(neighbor)
-
-    //     return visited
-    // }
 
     function breadthFirstSearch(start, maxMovement) {
         /* see http://www.redblobgames.com/pathfinding/a-star/introduction.html */
@@ -220,9 +212,7 @@
 
         // Iterate through frontier and visit all of the neighbours within.
         // If the neighbours have not been seen, add them to the motherfucking frontier
-        console.log(k < movement && frontier.length > 0);
         for ( var k = 0; k < movement && frontier[k].length > 0; k++ ) { 
-            console.log('here');
             // Create a new array for the next level of frontier bants.
             frontier[k+1] = [];
 

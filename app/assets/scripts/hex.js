@@ -105,7 +105,6 @@ function OffsetCoord(col, row) {
 
 var EVEN = 1;
 var ODD = -1;
-
 function qoffset_from_cube(offset, h)
 {
     var col = h.q;
