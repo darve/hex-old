@@ -39,9 +39,18 @@
         ],
 
         _ = {
+            bg: "#F5F7FA",
+            fg: "#FFCE54",
             hexes: undefined,
             layout: undefined,
-            size: 22
+            size: 22,
+            current: undefined
+        },
+
+        lad = {
+            pos: new Point(0, 0),
+            currentHex: undefined,
+            targetHex: undefined
         };
 
     cx.lineWidth = 1;
@@ -52,7 +61,7 @@
         return colours[Math.floor(Math.random() * colours.length)];
     }
 
-    function dot(x,y,r, c){
+    function dot(x,y,r,c){
         cx.translate(x, y);
         cx.strokeStyle = c;
         cx.fillStyle = c;
@@ -72,6 +81,12 @@
     }
 
     function render(){
+        cx.clearRect(0, 0, w, h);
+        drawGrid();
+        dot(lad.pos.x+w/2, lad.pos.y+h/2, 2, _.fg);
+        // if ( _.current !== undefined ) {
+        //     fill(_.current);    
+        // }
         // window.requestAnimationFrame(render);
     }
 
@@ -80,85 +95,219 @@
         c.width = w;
         c.height = h;
 
-        _.fill = randomColour();
-
         _.layout = Layout(layout_pointy, Point(_.size, _.size), Point(0, 0));
-        _.hexes = shapeRectangle(w/_.size, h/_.size, permuteQRS);
-        drawGrid("hsl(60, 10%, 90%)", true);
+        _.hexes = generateGrid(w/_.size, h/_.size);
+        // drawGrid();
 
         $(c).on('mousemove', function(e){
-            // console.log(
-            //     parseInt(e.pageX+(w/2)), 
-            //     parseInt(e.pageY+(h/2))
-            // );
-            
-            var lol = hex_round(
-                pixel_to_hex(
-                    _.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
+            var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
 
-            console.log(lol);
-            var corners = polygon_corners(_.layout, lol);
-            cx.beginPath();
-            // cx.strokeStyle = "black";
-            // cx.fillStyle = _.fill;
-            cx.fillStyle = 'rgba(' + (lol.q*10) + ', ' + (lol.r*10) + ', ' + (lol.s*10) + ', 1)';
-            cx.lineWidth = 1;
-            cx.moveTo(corners[5].x, corners[5].y);
+            _.current = lol;
+        });
 
-            for (var i = 0; i < 6; i++) {
-                cx.lineTo(corners[i].x, corners[i].y);
+        $(c).on('click', function(e) {
+            var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
+
+            _.clicked = lol;
+
+            // var bfs = breadthFirstSearch(new Hex(0, 0, 0), 120);
+            var s = search(Hex(0, 0, 0), 32);
+
+            console.log(s.came_from);
+
+            // console.log(bfs);
+
+            // Reconstruct path to mouseover position
+            var path = [];
+            var node = lol;
+
+            while (node != null) {
+                path.push(node);
+                node = s.came_from[hex_to_string(node)];
             }
 
-            cx.stroke();
-            cx.fill();
+            console.log(path);
 
+            for ( var i in path ) {
+                fill( path[i] );
+            }
         });
-        // window.requestAnimationFrame(render);
+
+        // $(doc).on('keydown', function(e){
+
+        //     // console.log(e.keyCode);
+
+        //     if ( e.keyCode === 37 ) {
+        //         applyImpulse(180, 2);
+        //     } else if ( e.keyCode === 38 ) {
+        //         applyImpulse(270, 2);
+        //     } else if ( e.keyCode === 39 ) {
+        //         applyImpulse(0, 2);
+        //     } else if ( e.keyCode === 40 ) {
+        //         applyImpulse(90, 2);
+        //     }
+
+        //     if ( e.keyCode === 65 ) {
+        //         // Left torque
+        //         applyTorque(20);
+        //     } else if ( e.keyCode === 68 ) {
+        //         // Right torque
+        //         applyTorque(20)
+        //     }
+
+        // });
+
+
+        window.requestAnimationFrame(render);
     }
 
-    function fillHex( hex ) {
-        var corners = polygon_corners(_.layout, hex);
+    // function cube_reachable(start, movement) {
+    //     var visited = set()
+    //     add start to visited
+    //     var fringes = [];
+    //     fringes.append([start])
+
+    //     for each 1 < k ≤ movement:
+    //         fringes.append([])
+    //         for each cube in fringes[k-1]:
+    //             for each 0 ≤ dir < 6:
+    //                 var neighbor = cube_neighbor(cube, dir)
+    //                 if neighbor not in visited, not blocked:
+    //                     add neighbor to visited
+    //                     fringes[k].append(neighbor)
+
+    //     return visited
+    // }
+
+    function breadthFirstSearch(start, maxMovement) {
+        /* see http://www.redblobgames.com/pathfinding/a-star/introduction.html */
+        var cost_so_far = d3.map(); cost_so_far.set(start, 0);
+        var came_from = d3.map(); came_from.set(start, null);
+        var fringes = [[start]];
+
+        for (var k = 0; k < maxMovement && fringes[k].length > 0; k++) {
+            fringes[k+1] = [];
+    
+            fringes[k].forEach(function(hex) {
+                for (var dir = 0; dir < 6; dir++) {
+                    
+                    var neighbor = hex_neighbor(hex, dir);
+
+                    if (!cost_so_far.has(neighbor)) {
+                        console.log('omg');
+                        cost_so_far.set(neighbor, k+1);
+                        came_from.set(neighbor, hex);
+                        fringes[k+1].push(neighbor);
+                    }
+                }
+            });
+        }
+        return {cost_so_far: cost_so_far, came_from: came_from};
+    }
+
+    function search( start, movement ) {
+
+        // Used for storing unique hexes so we know which ones we have visited.
+        var visited = new Set();
+        visited.add(hex_to_string(start));
+
+        // An array of the hexes in the outskirts of our search.
+        var frontier = [[start]];
+
+        // A proper list of where we have come from
+        var came_from = {};
+        came_from[hex_to_string(start)] = null;
+
+        // Iterate through frontier and visit all of the neighbours within.
+        // If the neighbours have not been seen, add them to the motherfucking frontier
+        console.log(k < movement && frontier.length > 0);
+        for ( var k = 0; k < movement && frontier[k].length > 0; k++ ) { 
+            console.log('here');
+            // Create a new array for the next level of frontier bants.
+            frontier[k+1] = [];
+
+            // Iterate through the current list of frontier hexes
+            for ( var f in frontier[k] ) {
+
+                // For each of the possible directions for this hex, lets see if we have 
+                // visited the neighbor of this hex in that direction
+                for ( var dir = 0; dir < 6; dir++ ) {
+
+                    // Get the neighbor
+                    var neighbor = hex_neighbor(frontier[k][f], dir);
+
+                    // Check if it has been visited
+                    if (!visited.has(hex_to_string(neighbor))) {
+                        // If it hasn't, add it to the motherfuckin' frontier
+                        frontier[k+1].push(neighbor);
+                        // Add it to the visited array
+                        visited.add(hex_to_string(neighbor));
+                        came_from[hex_to_string(neighbor)] = frontier[k][f];
+                    }
+                }
+            }
+        }
+
+        return { came_from: came_from };
+    }
+
+    function unique(arr, item) {
+        for ( var i in arr ) {
+            if ( arr[i] === item ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function hex_to_string(hex) {
+        return hex.q + ',' + hex.r + ',' + hex.s;
+    }
+
+    function string_to_hex(str) { 
+        console.log(str);
+        var q = str.split(',');
+        return Hex(q[0], q[2], q[4]);
+    }
+
+    function fill(temp) {
+        cx.translate(w/2, h/2);
+        corners = polygon_corners(_.layout, temp);
+
         cx.beginPath();
-        // cx.strokeStyle = "black";
-        cx.fillStyle = randomColour();
-        cx.lineWidth = 1;
+        cx.fillStyle = _.fg;
         cx.moveTo(corners[5].x, corners[5].y);
 
         for (var i = 0; i < 6; i++) {
             cx.lineTo(corners[i].x, corners[i].y);
         }
 
-        cx.stroke();
         cx.fill();
+        cx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    function shapeRectangle(w, h, constructor) {
+    function generateGrid(w, h) {
         var hexes = [];
         var i1 = -Math.floor(w/2), i2 = i1 + w;
         var j1 = -Math.floor(h/2), j2 = j1 + h;
         for (var j = j1; j < j2; j++) {
             var jOffset = -Math.floor(j/2);
             for (var i = i1 + jOffset; i < i2 + jOffset; i++) {
-                hexes.push(constructor(i, j, -i-j));
+                hexes.push(new Hex(i, j, -i-j));
             }
         }
         return hexes;
     }
 
-
-    function drawGrid(backgroundColor, withLabels) {
-        
-        cx.fillStyle = backgroundColor;
+    function drawGrid() {
+        cx.fillStyle = _.bg;
         cx.fillRect(0, 0, w, h);
         cx.translate(w/2, h/2);
         _.hexes.forEach(function(hex) {
-            // console.log(hex);
             drawHex(cx, hex);
-            // if (withLabels) drawHexLabel(cx, hex);
         });
+        cx.setTransform(1, 0, 0, 1, 0, 0);
     }
-
-    function permuteQRS(q, r, s) { return Hex(q, r, s); }
 
     function drawHex(ctx, hex) {
         var corners = polygon_corners(_.layout, hex);
@@ -170,32 +319,6 @@
             ctx.lineTo(corners[i].x, corners[i].y);
         }
         ctx.stroke();
-    }
-
-
-    function colorForHex(hex) {
-        // Match the color style used in the main article
-        if (hex.q == 0 && hex.r == 0 && hex.s == 0) {
-            return "hsl(0, 50%, 0%)";
-        } else if (hex.q == 0) {
-            return "hsl(90, 70%, 35%)";
-        } else if (hex.r == 0) {
-            return "hsl(200, 100%, 35%)";
-        } else if (hex.s == 0) {
-            return "hsl(300, 40%, 50%)";
-        } else {
-            return "hsl(0, 0%, 50%)";
-        }
-    }
-
-
-    function drawHexLabel(ctx, hex) {
-        var center = hex_to_pixel(_.layout, hex);
-        ctx.fillStyle = colorForHex(hex);
-        ctx.font = "12px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText((hex.q == 0 && hex.r == 0 && hex.s == 0)? "q,r,s" : (hex.q + "," + hex.r + "," + hex.s), center.x, center.y);
     }
 
 

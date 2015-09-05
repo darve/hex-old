@@ -2,7 +2,7 @@
 "use strict";
 
 
-
+// Simple 2D vector 
 function Point(x, y) {
     return {x: x, y: y};
 }
@@ -27,6 +27,7 @@ function hex_scale(a, k)
 }
 
 var hex_directions = [Hex(1, 0, -1), Hex(1, -1, 0), Hex(0, -1, 1), Hex(-1, 0, 1), Hex(-1, 1, 0), Hex(0, 1, -1)];
+
 function hex_direction(direction)
 {
     return hex_directions[direction];
@@ -38,6 +39,7 @@ function hex_neighbor(hex, direction)
 }
 
 var hex_diagonals = [Hex(2, -1, -1), Hex(1, -2, 1), Hex(-1, -1, 2), Hex(-2, 1, 1), Hex(-1, 2, -1), Hex(1, 1, -2)];
+
 function hex_diagonal_neighbor(hex, direction)
 {
     return hex_add(hex, hex_diagonals[direction]);
@@ -103,6 +105,7 @@ function OffsetCoord(col, row) {
 
 var EVEN = 1;
 var ODD = -1;
+
 function qoffset_from_cube(offset, h)
 {
     var col = h.q;
