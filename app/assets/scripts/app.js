@@ -100,7 +100,7 @@
             fill(blocked[i], _.blocked);
         }
         // Draw the lad
-        dot(lad.pos.x+w/2, lad.pos.y+h/2, 2, _.fg);
+        dot(lad.pos.x+w/2, lad.pos.y+h/2, 5, _.fg);
         
         if ( lad.path.length ) {
             if ( lad.pos.isCloseTo( lad.target, 1 ) ) {
@@ -111,7 +111,7 @@
                 // console.log('travelling', lad.pos.x, lad.pos.y, lad.target.x, lad.target.y);
                 // lad.dir = lad.target.minusEq(lad.pos).normalise
                 // lad.pos = lad.pos.plusEq(lad.target.clone().normalise().divideEq(3));
-                lad.dir = lad.target.minusNew(lad.pos).normalise();
+                lad.dir = lad.target.minusNew(lad.pos).normalise().multiplyEq(2);
                 lad.pos.plusEq(lad.dir);
                 // console.log(lad.dir);
             }
@@ -188,6 +188,7 @@
         for ( var i in blocked ) {
             _blocked.add(hex_to_string(blocked[i]));
         }
+        console.log(_blocked);
 
         // An array of the hexes in the outskirts of our search.
         var frontier = [[start]];
@@ -211,6 +212,8 @@
 
                     // Get the neighbor
                     var neighbor = hex_neighbor(frontier[k][f], dir);
+
+                    if ( _blocked)
 
                     // Check if it has been visited
                     if (!visited.has(hex_to_string(neighbor)) && !_blocked.has(hex_to_string(neighbor))) {
