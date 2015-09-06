@@ -41,6 +41,7 @@
         _ = {
             bg: "#F5F7FA",
             fg: "#FFCE54",
+            blocked: "#434A54",
             hexes: undefined,
             layout: undefined,
             size: 22,
@@ -49,10 +50,17 @@
 
         lad = {
             pos: new Vec(0, 0),
+            dir: new Vec(0, 0),
             target: undefined,
             currentHex: new Hex(0, 0, 0),
             path: []
-        };
+        },
+
+        blocked = [
+            Hex(4, 3, 2),
+            Hex(4, 4, 2),
+            Hex(4, 5, 2)
+        ];
 
     cx.lineWidth = 1;
     cx.fillStyle = 0x555555;
@@ -88,24 +96,27 @@
         
         // Draw thr grid
         drawGrid();
-
+        for ( var i in blocked ) {
+            fill(blocked[i], _.blocked);
+        }
         // Draw the lad
         dot(lad.pos.x+w/2, lad.pos.y+h/2, 2, _.fg);
         
         if ( lad.path.length ) {
-            if ( lad.pos.isCloseTo( lad.target, 0.3 ) ) {
-                console.log('node reached');
+            if ( lad.pos.isCloseTo( lad.target, 1 ) ) {
                 lad.pos = lad.target;
-                lad.target = hex_to_pixel(_.layout, lad.path.shift());
-                lad.target = new Vec(lad.target.x, lad.target.y);
+                lad.target = point_to_vec(hex_to_pixel(_.layout, lad.path.pop()));
+                console.log('node reached', lad.pos, lad.target);
             } else {
-                console.log('travelling', lad.pos.x, lad.pos.y, lad.target.x, lad.target.y);
-                lad.pos = lad.pos.plusEq(lad.target.normalise()).divideEq(6);
-                lad.pos.x = lad.pos.x.toFixed(3);
-                lad.pos.y = lad.pos.y.toFixed(3);
+                // console.log('travelling', lad.pos.x, lad.pos.y, lad.target.x, lad.target.y);
+                // lad.dir = lad.target.minusEq(lad.pos).normalise
+                // lad.pos = lad.pos.plusEq(lad.target.clone().normalise().divideEq(3));
+                lad.dir = lad.target.minusNew(lad.pos).normalise();
+                lad.pos.plusEq(lad.dir);
+                // console.log(lad.dir);
             }
         }
-        
+        window.requestAnimationFrame(render);
     }
 
     function init() {
@@ -115,45 +126,46 @@
 
         _.layout = Layout(layout_pointy, Point(_.size, _.size), Point(0, 0));
         _.hexes = generateGrid(w/_.size, h/_.size);
-        // drawGrid();
 
         $(c).on('mousemove', function(e){
             var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
-
             _.current = lol;
         });
 
         $(c).on('click', function(e) {
 
             // Get the hex we clicked on
-            var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
+            var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) })),
+                s,
+                path,
+                node,
+                temp;
 
             _.clicked = lol;
 
-            var s = search(Hex(0, 0, 0), 32);
+            s = search(pixel_to_hex(_.layout, lad.pos), 32);
 
             // Reconstruct path to mouseover position
-            var path = [];
-            var node = lol;
-
+            path = [];
+            node = lol;
+            path.push(lol);
             while (node != null) {
                 path.push(node);
                 node = s.came_from[hex_to_string(node)];
             }
 
+            for ( var i in path ) {
+                var p = hex_to_pixel(_.layout, path[i]);
+                console.log(p);
+                dot(p.x+w/2, p.y+h/2, 2, _.fg);
+            }
+            
             lad.path = path;
-            lad.target = hex_to_pixel(_.layout, lad.path.shift());
-            lad.target = new Vec(lad.target.x.toFixed(3), lad.target.y.toFixed(3));
-
-            // for ( var i in path ) {
-                // console.log(hex_to_pixel(_.layout, path[i]));
-                // fill( path[i] );
-            // }
+            lad.target = point_to_vec(hex_to_pixel(_.layout, lad.path.pop()));
+            console.log(lad.path, lad.pos, lad.target)
         });
 
         $(doc).on('keydown', function(e){
-
-            console.log(e.keyCode);
 
             if ( e.keyCode === 32 ) {
                 window.requestAnimationFrame(render);
@@ -170,6 +182,12 @@
         // Used for storing unique hexes so we know which ones we have visited.
         var visited = new Set();
         visited.add(hex_to_string(start));
+
+        _blocked = new Set();
+
+        for ( var i in blocked ) {
+            _blocked.add(hex_to_string(blocked[i]));
+        }
 
         // An array of the hexes in the outskirts of our search.
         var frontier = [[start]];
@@ -195,7 +213,7 @@
                     var neighbor = hex_neighbor(frontier[k][f], dir);
 
                     // Check if it has been visited
-                    if (!visited.has(hex_to_string(neighbor))) {
+                    if (!visited.has(hex_to_string(neighbor)) && !_blocked.has(hex_to_string(neighbor))) {
                         // If it hasn't, add it to the motherfuckin' frontier
                         frontier[k+1].push(neighbor);
                         // Add it to the visited array
@@ -228,12 +246,16 @@
         return Hex(q[0], q[2], q[4]);
     }
 
-    function fill(temp) {
+    function point_to_vec(h) {
+        return new Vec(h.x, h.y);
+    }
+
+    function fill(temp, c) {
         cx.translate(w/2, h/2);
         corners = polygon_corners(_.layout, temp);
 
         cx.beginPath();
-        cx.fillStyle = _.fg;
+        cx.fillStyle = c;
         cx.moveTo(corners[5].x, corners[5].y);
 
         for (var i = 0; i < 6; i++) {
@@ -278,7 +300,6 @@
         }
         ctx.stroke();
     }
-
 
     $(init);
 
