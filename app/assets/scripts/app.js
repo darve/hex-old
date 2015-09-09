@@ -60,25 +60,34 @@
         },
 
         blocked = [
-            Hex(-2, -2, 2),
-            Hex(-1, -2, 2),
             Hex(0, -2, 2),
-            Hex(1, -2, 2),
-            Hex(2, -2, 2),
-            Hex(3, -2, 2),
-            Hex(4, -2, 2),
-            Hex(4, -1, 2),
-            Hex(4, 0, 2),
-            Hex(4, 1, 2),
-            Hex(4, 2, 2),
-            Hex(4, 3, 2),
-            Hex(4, 4, 2),
-            Hex(4, 5, 2)
+            Hex(1, -2, 1),
+            Hex(2, -2, 0),
+            Hex(3, -2, -1),
+            Hex(3, -1, -2),
+            Hex(3, 0, -3),
+            Hex(2, 1, -3),
+            Hex(1, 1, -2),
+            Hex(0, 1, -1),
+            Hex(-1, 1, 0),
         ],
 
-        _blocked = new Set();
+        _blocked = new Set(),
+
+        fps = 60,
+        now,
+        then = Date.now(),
+        interval = 1000/fps,
+        delta,
+
+        frontier,
+        visited,
+        came_from,
+        k = 0;
 
     window.lad = lad;
+    window.blocked = blocked;
+    window._blocked = _blocked;
 
     cx.lineWidth = 1;
     cx.fillStyle = 0x555555;
@@ -107,13 +116,48 @@
         cx.stroke();
     }
 
-    function render(){
+    function render() {
 
-        // Clear the canvas
+        requestAnimationFrame(render);
+        now = Date.now();
+        delta = now - then;
+
+        if (delta > interval) {
+            then = now - (delta % interval);
+            integrate();
+            draw();
+        }
+    }
+
+
+    function integrate() {
+        if ( lad.path.length ) {
+            if ( lad.pos.isCloseTo( lad.target, 2 ) ) {
+                lad.current = lad.next;
+                lad.pos = lad.target;
+                lad.next = lad.path.pop();
+                lad.target = point_to_vec(hex_to_pixel(_.layout, lad.next));
+            } else {
+                lad.dir = lad.target.minusNew(lad.pos).normalise().multiplyEq(4);
+                lad.pos.plusEq(lad.dir);
+            }
+        } else if ( lad.target !== undefined ) {
+            // The lad has finished his journey
+            // console.log('The lad has finished his journey');
+            lad.pos = lad.target;
+            lad.target = undefined;
+            lad.travelling = false;
+        }
+    }
+
+    function draw() {
+
+        // Clear the fucking canvas you galloping great arsehole
         cx.clearRect(0, 0, w, h);
-        
-        // Draw thr grid
+
+        // Draw the grid you enormous jumped up twat
         drawGrid();
+
         if ( _.current ) {
             fill(_.current, '#4FC1E9');
         }
@@ -121,33 +165,15 @@
         for ( var i in blocked ) {
             fill(blocked[i], _.blocked);
         }
+
+
         // Draw the lad
         dot(lad.pos.x+w/2, lad.pos.y+h/2, 5, _.fg);
-        
-        if ( lad.path.length ) {
-            if ( lad.pos.isCloseTo( lad.target, 2 ) ) {
-                lad.current = lad.next;
-                lad.pos = lad.target;
-                lad.next = lad.path.pop();
-                lad.target = point_to_vec(hex_to_pixel(_.layout, lad.next));
-                console.log('node reached',lad.current, lad.next);
-            } else {
-                lad.dir = lad.target.minusNew(lad.pos).normalise().multiplyEq(4);
-                lad.pos.plusEq(lad.dir);
-            }
-        } else if ( lad.target !== undefined ) {
-            // The lad has finished his journey
-            console.log('The lad has finished his journey');
-            lad.pos = lad.target;
-            lad.target = undefined;
-            lad.travelling = false;
-        }
 
         for ( var i in lad.path ) {
             var p = hex_to_pixel(_.layout, lad.path[i]);
             dot(p.x+w/2, p.y+h/2, 2, _.fg);
         }
-        window.requestAnimationFrame(render);
     }
 
     function init() {
@@ -158,11 +184,6 @@
         _.layout = Layout(layout_pointy, Point(_.size, _.size), Point(0, 0));
         _.hexes = generateGrid(w/_.size, h/_.size);
 
-        for ( var i in blocked ) {
-            _blocked.add(hex_to_string(blocked[i]));
-            console.log('blocked: ', hex_to_string(blocked[i]));
-        }
-
         $(c).on('mousemove', function(e){
             var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
             _.current = lol;
@@ -170,89 +191,101 @@
 
         $(c).on('click', function(e) {
 
+            // If the lad is travelling, exit early.
             if ( lad.travelling === true ) return false;
+
             // Get the hex we clicked on
-            var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) })),
-                s,
-                path,
-                node,
-                temp;
+            var lol = hex_round(pixel_to_hex(_.layout, { x: e.pageX-(w/2), y: e.pageY-(h/2) }));
 
             _.clicked = lol;
 
-            s = new search(hex_round(pixel_to_hex(_.layout, lad.pos)), 64);
-
-            // Reconstruct path to mouseover position
-            path = [];
-            node = lol;
-            path.push(lol);
-
-            while (node != null) {
-                path.push(hex_round(node));
-                node = s.came_from[hex_to_string(node)];
-            }
-            
-            lad.travelling = true;            
-            lad.path = path;
-            lad.target = point_to_vec(hex_to_pixel(_.layout, lad.path.pop()));
-            lad.next = lad.path[lad.path.length-1];
-
-            // console.log(lad.pos, lad.target);
+            atob(lad.pos, lol);
         });
 
         $(doc).on('keydown', function(e){
 
             if ( e.keyCode === 32 ) {
-                window.requestAnimationFrame(render);
+                blocked.push(_.current);
+                // window.requestAnimationFrame(render);
             }
 
         });
 
-        window.requestAnimationFrame(render);
+        requestAnimationFrame(render);
     }
 
-    function search( start, movement, goal ) {
+    function atob(start, end) {
+
+        var s,
+            path,
+            node,
+            temp;
+
+        s = new search(hex_round(pixel_to_hex(_.layout, lad.pos)), 32);
+
+        // Reconstruct path to mouseover position
+        path = [];
+        node = end;
+        path.push(end);
+
+        while (node != null) {
+            path.push(hex_round(node));
+            node = s.came_from[hex_to_string(node)];
+        }
+
+        lad.path = path;
+        lad.target = point_to_vec(hex_to_pixel(_.layout, lad.path.pop()));
+        lad.next = lad.path[lad.path.length-1];
+        lad.travelling = true;
+    }
+
+    function search(start, movement, goal) {
 
         // Used for storing unique hexes so we know which ones we have visited.
-        var visited = new Set();
+        visited = new Set();
         visited.add(hex_to_string(start));
 
+        _blocked = new Set();
+        blocked.forEach(function(i) {
+            _blocked.add(hex_to_string(i));
+        });
+
         // An array of the hexes in the outskirts of our search.
-        var frontier = [[start]];
+        frontier = [[start]];
 
         // A proper list of where we have come from
-        var came_from = {};
+        came_from = {};
         came_from[hex_to_string(start)] = null;
 
         // Iterate through frontier and visit all of the neighbours within.
         // If the neighbours have not been seen, add them to the motherfucking frontier
-        for ( var k = 0; k < movement && frontier[k].length > 0; k++ ) { 
+        for ( var k = 0; k < movement && frontier[k].length > 0; k++ ) {
             // Create a new array for the next level of frontier bants.
             frontier[k+1] = [];
 
             // Iterate through the current list of frontier hexes
             for ( var f in frontier[k] ) {
 
-                // For each of the possible directions for this hex, lets see if we have 
+                // For each of the possible directions for this hex, lets see if we have
                 // visited the neighbor of this hex in that direction
                 for ( var dir = 0; dir < 6; dir++ ) {
 
                     // Get the neighbor
                     var neighbor = hex_neighbor(frontier[k][f], dir);
-                    if ( k === 0 )  {
-                        // console.log(neighbor);
-                    }
-                    if ( _blocked.has(hex_to_string(neighbor)) ) {
-                        console.log('blocked found!', neighbor);
-                    }   
 
                     // Check if it has been visited
-                    if (!visited.has(hex_to_string(neighbor)) && !_blocked.has(hex_to_string(neighbor))) {
+                    if (visited.has(hex_to_string(neighbor))) {
+                        // console.log('visited ', neighbor);
+                    } else if ( _blocked.has(hex_to_string(neighbor)) ) {
+                        // console.log('blocked', neighbor);
+                    } else {
                         // If it hasn't, add it to the motherfuckin' frontier
                         frontier[k+1].push(neighbor);
                         // Add it to the visited array
                         visited.add(hex_to_string(neighbor));
                         came_from[hex_to_string(neighbor)] = frontier[k][f];
+                        // console.log('valid', neighbor);
+                        // fill(neighbor, '#000');
                     }
                 }
             }
@@ -261,43 +294,17 @@
         return { came_from: came_from };
     }
 
-    function unique(arr, item) {
-        for ( var i in arr ) {
-            if ( arr[i] === item ) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     function hex_to_string(hex) {
         return hex.q + ',' + hex.r + ',' + hex.s;
     }
 
-    function string_to_hex(str) { 
-        console.log(str);
+    function string_to_hex(str) {
         var q = str.split(',');
         return Hex(q[0], q[2], q[4]);
     }
 
     function point_to_vec(h) {
         return new Vec(h.x, h.y);
-    }
-
-    function fill(temp, c) {
-        cx.translate(w/2, h/2);
-        corners = polygon_corners(_.layout, temp);
-
-        cx.beginPath();
-        cx.fillStyle = c;
-        cx.moveTo(corners[5].x, corners[5].y);
-
-        for (var i = 0; i < 6; i++) {
-            cx.lineTo(corners[i].x, corners[i].y);
-        }
-
-        cx.fill();
-        cx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
     function generateGrid(w, h) {
@@ -336,9 +343,27 @@
         cx.stroke();
     }
 
+    function fill(hex, c) {
+        cx.translate(w/2, h/2);
+        corners = polygon_corners(_.layout, hex);
+
+        cx.beginPath();
+        cx.fillStyle = c;
+        cx.moveTo(corners[5].x, corners[5].y);
+
+        for (var i = 0; i < 6; i++) {
+            cx.lineTo(corners[i].x, corners[i].y);
+        }
+
+        cx.fill();
+        cx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    window.fill = fill;
+
     function drawHexLabel(hex) {
         var center = hex_to_pixel(_.layout, hex);
-        cx.fillStyle = _.txt;
+        cx.fillStyle = '#5D9CEC';
         cx.font = "10px sans-serif";
         cx.textAlign = "center";
         cx.textBaseline = "middle";
