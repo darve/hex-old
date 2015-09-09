@@ -262,7 +262,7 @@
             node,
             temp;
 
-        s = new search(hex_round(pixel_to_hex(_.layout, lad.pos)), 32);
+        s = new search(hex_round(pixel_to_hex(_.layout, lad.pos)), 64);
 
         // Reconstruct path to mouseover position
         path = [];
