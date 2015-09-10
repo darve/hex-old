@@ -59,59 +59,87 @@
             path: []
         },
 
+        // blocked = [
+        //     Hex(0,-2,2)
+        //     ,Hex(1,-2,1)
+        //     ,Hex(2,-2,0)
+        //     ,Hex(3,-2,-1)
+        //     ,Hex(3,-1,-2)
+        //     ,Hex(3,0,-3)
+        //     ,Hex(2,1,-3)
+        //     ,Hex(1,1,-2)
+        //     ,Hex(0,1,-1)
+        //     ,Hex(-1,1,0)
+        //     ,Hex(-2,2,0)
+        //     ,Hex(-3,3,0)
+        //     ,Hex(-4,3,1)
+        //     ,Hex(-5,3,2)
+        //     ,Hex(-6,3,3)
+        //     ,Hex(-7,3,4)
+        //     ,Hex(-9,4,5)
+        //     ,Hex(-8,4,4)
+        //     ,Hex(-10,5,5)
+        //     ,Hex(-10,6,4)
+        //     ,Hex(-10,8,2)
+        //     ,Hex(-9,8,1)
+        //     ,Hex(-10,7,3)
+        //     ,Hex(-8,8,0)
+        //     ,Hex(-7,7,0)
+        //     ,Hex(-6,6,0)
+        //     ,Hex(-6,5,1)
+        //     ,Hex(-7,5,2)
+        //     ,Hex(0,-3,3)
+        //     ,Hex(1,-4,3)
+        //     ,Hex(3,-5,2)
+        //     ,Hex(2,-4,2)
+        //     ,Hex(5,-6,1)
+        //     ,Hex(4,-6,2)
+        //     ,Hex(7,-7,0)
+        //     ,Hex(6,-7,1)
+        //     ,Hex(10,-8,-2)
+        //     ,Hex(9,-8,-1)
+        //     ,Hex(8,-8,0)
+        //     ,Hex(12,-9,-3)
+        //     ,Hex(11,-9,-2)
+        //     ,Hex(12,-8,-4)
+        //     ,Hex(11,-6,-5)
+        //     ,Hex(12,-7,-5)
+        //     ,Hex(10,-5,-5)
+        //     ,Hex(9,-5,-4)
+        //     ,Hex(8,-4,-4)
+        //     ,Hex(8,-3,-5)
+        //     ,Hex(7,-2,-5)
+        //     ,Hex(6,-2,-4)
+        //     ,Hex(5,-1,-4)
+        // ],
+
         blocked = [
-            Hex(0,-2,2)
-            ,Hex(1,-2,1)
-            ,Hex(2,-2,0)
-            ,Hex(3,-2,-1)
-            ,Hex(3,-1,-2)
-            ,Hex(3,0,-3)
-            ,Hex(2,1,-3)
-            ,Hex(1,1,-2)
-            ,Hex(0,1,-1)
-            ,Hex(-1,1,0)
-            ,Hex(-2,2,0)
-            ,Hex(-3,3,0)
-            ,Hex(-4,3,1)
-            ,Hex(-5,3,2)
-            ,Hex(-6,3,3)
-            ,Hex(-7,3,4)
-            ,Hex(-9,4,5)
-            ,Hex(-8,4,4)
-            ,Hex(-10,5,5)
-            ,Hex(-10,6,4)
-            ,Hex(-10,8,2)
-            ,Hex(-9,8,1)
-            ,Hex(-10,7,3)
-            ,Hex(-8,8,0)
-            ,Hex(-7,7,0)
-            ,Hex(-6,6,0)
-            ,Hex(-6,5,1)
-            ,Hex(-7,5,2)
-            ,Hex(0,-3,3)
-            ,Hex(1,-4,3)
-            ,Hex(3,-5,2)
-            ,Hex(2,-4,2)
-            ,Hex(5,-6,1)
-            ,Hex(4,-6,2)
-            ,Hex(7,-7,0)
-            ,Hex(6,-7,1)
-            ,Hex(10,-8,-2)
-            ,Hex(9,-8,-1)
-            ,Hex(8,-8,0)
-            ,Hex(12,-9,-3)
-            ,Hex(11,-9,-2)
-            ,Hex(12,-8,-4)
-            ,Hex(11,-6,-5)
-            ,Hex(12,-7,-5)
-            ,Hex(10,-5,-5)
-            ,Hex(9,-5,-4)
-            ,Hex(8,-4,-4)
-            ,Hex(8,-3,-5)
-            ,Hex(7,-2,-5)
-            ,Hex(6,-2,-4)
-            ,Hex(5,-1,-4)
-        ],
+        Hex(-1,-1,2)
+        ,Hex(-2,0,2)
+        ,Hex(-2,1,1)
+        ,Hex(-2,2,0)
+        ,Hex(-1,2,-1)
+        ,Hex(0,2,-2)
+        ,Hex(1,1,-2)
+        ,Hex(2,0,-2)
+        ,Hex(2,-1,-1)
+        ,Hex(-1,-3,4)
+        ,Hex(0,-3,3)
+        ,Hex(1,-3,2)
+        ,Hex(2,-3,1)
+        ,Hex(3,-3,0)
+        ,Hex(4,-3,-1)
+        ,Hex(-2,-3,5)
+        ,Hex(5,-3,-2)
+        ,Hex(1,-5,4)
+        ,Hex(4,-5,1)
+        ,Hex(1,-6,5)
+        ,Hex(5,-6,1)
+        ,Hex(5,-7,2)
+        ,Hex(2,-7,5)
+        ,Hex(3,-8,5)
+        ,Hex(4,-8,4)
+        ,Hex(5,-8,3)],
 
         _blocked = new Set(),
 
@@ -246,7 +274,19 @@
         $(doc).on('keydown', function(e){
 
             if ( e.keyCode === 32 ) {
-                blocked.push(_.current);
+
+                // var t = new Set();
+
+                // blocked.forEach(function(i) {
+                //     t.add(hex_to_string(i));
+                // });
+
+                // if ( t.has(hex_to_string(_.current))) {
+
+                // } else {
+                    blocked.push(_.current);
+                // }
+
                 // window.requestAnimationFrame(render);
             }
 
@@ -320,19 +360,38 @@
                     } else if ( _blocked.has(hex_to_string(neighbor)) ) {
                         // console.log('blocked', neighbor);
                     } else {
+
                         // If it hasn't, add it to the motherfuckin' frontier
                         frontier[k+1].push(neighbor);
+
                         // Add it to the visited array
                         visited.add(hex_to_string(neighbor));
                         came_from[hex_to_string(neighbor)] = frontier[k][f];
-                        // console.log('valid', neighbor);
-                        // fill(neighbor, '#000');
                     }
                 }
             }
         }
 
         return { came_from: came_from };
+    }
+
+    function contains(arr, val) {
+        for ( var i in arr ) {
+            if ( arr[i] === val ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function index(arr, val){
+        for ( var i in arr ) {
+            if ( arr[i] === val ) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     function hex_to_string(hex) {
