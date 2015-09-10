@@ -45,7 +45,7 @@
             blocked: "#434A54",
             hexes: undefined,
             layout: undefined,
-            size: 22,
+            size: 20,
             current: undefined
         },
 
