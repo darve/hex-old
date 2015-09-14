@@ -4,6 +4,11 @@
  * -----------------------------
  */
 
+var $       = require('jquery');
+    Lad     = require('./modules/lad');
+
+    window.Pos = require('./modules/pos');
+
 (function(win, doc, c) {
 
     var cx = c.getContext('2d'),
@@ -59,87 +64,34 @@
             path: []
         },
 
-        // blocked = [
-        //     Hex(0,-2,2)
-        //     ,Hex(1,-2,1)
-        //     ,Hex(2,-2,0)
-        //     ,Hex(3,-2,-1)
-        //     ,Hex(3,-1,-2)
-        //     ,Hex(3,0,-3)
-        //     ,Hex(2,1,-3)
-        //     ,Hex(1,1,-2)
-        //     ,Hex(0,1,-1)
-        //     ,Hex(-1,1,0)
-        //     ,Hex(-2,2,0)
-        //     ,Hex(-3,3,0)
-        //     ,Hex(-4,3,1)
-        //     ,Hex(-5,3,2)
-        //     ,Hex(-6,3,3)
-        //     ,Hex(-7,3,4)
-        //     ,Hex(-9,4,5)
-        //     ,Hex(-8,4,4)
-        //     ,Hex(-10,5,5)
-        //     ,Hex(-10,6,4)
-        //     ,Hex(-10,8,2)
-        //     ,Hex(-9,8,1)
-        //     ,Hex(-10,7,3)
-        //     ,Hex(-8,8,0)
-        //     ,Hex(-7,7,0)
-        //     ,Hex(-6,6,0)
-        //     ,Hex(-6,5,1)
-        //     ,Hex(-7,5,2)
-        //     ,Hex(0,-3,3)
-        //     ,Hex(1,-4,3)
-        //     ,Hex(3,-5,2)
-        //     ,Hex(2,-4,2)
-        //     ,Hex(5,-6,1)
-        //     ,Hex(4,-6,2)
-        //     ,Hex(7,-7,0)
-        //     ,Hex(6,-7,1)
-        //     ,Hex(10,-8,-2)
-        //     ,Hex(9,-8,-1)
-        //     ,Hex(8,-8,0)
-        //     ,Hex(12,-9,-3)
-        //     ,Hex(11,-9,-2)
-        //     ,Hex(12,-8,-4)
-        //     ,Hex(11,-6,-5)
-        //     ,Hex(12,-7,-5)
-        //     ,Hex(10,-5,-5)
-        //     ,Hex(9,-5,-4)
-        //     ,Hex(8,-4,-4)
-        //     ,Hex(8,-3,-5)
-        //     ,Hex(7,-2,-5)
-        //     ,Hex(6,-2,-4)
-        //     ,Hex(5,-1,-4)
-        // ],
-
         blocked = [
-        Hex(-1,-1,2)
-        ,Hex(-2,0,2)
-        ,Hex(-2,1,1)
-        ,Hex(-2,2,0)
-        ,Hex(-1,2,-1)
-        ,Hex(0,2,-2)
-        ,Hex(1,1,-2)
-        ,Hex(2,0,-2)
-        ,Hex(2,-1,-1)
-        ,Hex(-1,-3,4)
-        ,Hex(0,-3,3)
-        ,Hex(1,-3,2)
-        ,Hex(2,-3,1)
-        ,Hex(3,-3,0)
-        ,Hex(4,-3,-1)
-        ,Hex(-2,-3,5)
-        ,Hex(5,-3,-2)
-        ,Hex(1,-5,4)
-        ,Hex(4,-5,1)
-        ,Hex(1,-6,5)
-        ,Hex(5,-6,1)
-        ,Hex(5,-7,2)
-        ,Hex(2,-7,5)
-        ,Hex(3,-8,5)
-        ,Hex(4,-8,4)
-        ,Hex(5,-8,3)],
+            Hex(-1,-1,2),
+            Hex(-2,0,2),
+            Hex(-2,1,1),
+            Hex(-2,2,0),
+            Hex(-1,2,-1),
+            Hex(0,2,-2),
+            Hex(1,1,-2),
+            Hex(2,0,-2),
+            Hex(2,-1,-1),
+            Hex(-1,-3,4),
+            Hex(0,-3,3),
+            Hex(1,-3,2),
+            Hex(2,-3,1),
+            Hex(3,-3,0),
+            Hex(4,-3,-1),
+            Hex(-2,-3,5),
+            Hex(5,-3,-2),
+            Hex(1,-5,4),
+            Hex(4,-5,1),
+            Hex(1,-6,5),
+            Hex(5,-6,1),
+            Hex(5,-7,2),
+            Hex(2,-7,5),
+            Hex(3,-8,5),
+            Hex(4,-8,4),
+            Hex(5,-8,3)
+        ],
 
         _blocked = new Set(),
 
@@ -153,10 +105,6 @@
         visited,
         came_from,
         k = 0;
-
-    window.lad = lad;
-    window.blocked = blocked;
-    window._blocked = _blocked;
 
     cx.lineWidth = 1;
     cx.fillStyle = 0x555555;
@@ -205,7 +153,7 @@
                 lad.current = lad.next;
                 lad.pos = lad.target;
                 lad.next = lad.path.pop();
-                lad.target = point_to_vec(hex_to_pixel(_.layout, lad.next));
+                lad.target = hex_to_pixel(_.layout, lad.next);
             } else {
                 lad.dir = lad.target.minusNew(lad.pos).normalise().multiplyEq(4);
                 lad.pos.plusEq(lad.dir);
@@ -235,7 +183,6 @@
             fill(blocked[i], _.blocked);
         }
 
-
         // Draw the lad
         dot(lad.pos.x+w/2, lad.pos.y+h/2, 5, _.fg);
 
@@ -250,7 +197,7 @@
         c.width = w;
         c.height = h;
 
-        _.layout = Layout(layout_pointy, Point(_.size, _.size), Point(0, 0));
+        _.layout = Layout(layout_pointy, new Vec(_.size, _.size), new Vec(0, 0));
         _.hexes = generateGrid(w/_.size, h/_.size);
 
         $(c).on('mousemove', function(e){
@@ -315,7 +262,7 @@
         }
 
         lad.path = path;
-        lad.target = point_to_vec(hex_to_pixel(_.layout, lad.path.pop()));
+        lad.target = hex_to_pixel(_.layout, lad.path.pop());
         lad.next = lad.path[lad.path.length-1];
         lad.travelling = true;
     }
@@ -403,10 +350,6 @@
         return Hex(q[0], q[2], q[4]);
     }
 
-    function point_to_vec(h) {
-        return new Vec(h.x, h.y);
-    }
-
     function generateGrid(w, h) {
         var hexes = [];
         var i1 = -Math.floor(w/2), i2 = i1 + w;
@@ -458,6 +401,17 @@
         cx.fill();
         cx.setTransform(1, 0, 0, 1, 0, 0);
     }
+
+    // Simple extend function - iterates through all the properties of the second
+    // argument object and adds them / overwrites them on the first argument
+    function extend(obj, ext) {
+
+        for (var prop in ext) {
+            obj[prop] = (obj.hasOwnProperty(prop)) ? obj[prop] : ext[prop];
+        }
+        return obj;
+
+    };
 
     window.fill = fill;
 

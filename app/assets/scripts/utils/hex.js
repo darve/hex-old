@@ -2,10 +2,199 @@
 "use strict";
 
 
-// Simple 2D vector 
-function Point(x, y) {
-    return {x: x, y: y};
-}
+// Simple 2D vector
+// function Point(x, y) {
+//     return {x: x, y: y};
+// }
+
+
+
+var Vec = function(x,y) {
+
+    this.x = x || 0;
+    this.y = y || 0;
+
+};
+
+Vec.prototype = {
+
+    reset: function ( x, y ) {
+
+        this.x = x;
+        this.y = y;
+
+        return this;
+
+    },
+
+    projectNew : function( vec, distance ) {
+
+        var newvec = new Vec( this.x, this.y );
+        vec.clone();
+
+        newvec.plusEq( vec.normaliseNew().multiplyEq( distance ) );
+        return newvec;
+    },
+
+    directionNew : function( vec ) {
+        return new Vec( this.x, this.y).minusNew( vec ).normalise();
+    },
+
+    toString : function (decPlaces) {
+        decPlaces = decPlaces || 3;
+        var scalar = Math.pow(10,decPlaces);
+        return "[" + Math.round (this.x * scalar) / scalar + ", " + Math.round (this.y * scalar) / scalar + "]";
+    },
+
+    clone : function () {
+        return new Vec(this.x, this.y);
+    },
+
+    copyTo : function (v) {
+        v.x = this.x;
+        v.y = this.y;
+    },
+
+    copyFrom : function (v) {
+        this.x = v.x;
+        this.y = v.y;
+    },
+
+    magnitude : function () {
+        return Math.sqrt((this.x*this.x)+(this.y*this.y));
+    },
+
+    magnitudeSquared : function () {
+        return (this.x*this.x)+(this.y*this.y);
+    },
+
+    normalise : function () {
+
+        var m = this.magnitude();
+
+        this.x = this.x/m;
+        this.y = this.y/m;
+
+        return this;
+    },
+
+    normaliseNew : function() {
+        return new Vec( this.x, this.y ).normalise();
+    },
+
+    reverse : function () {
+        this.x = -this.x;
+        this.y = -this.y;
+
+        return this;
+    },
+
+    plusEq : function (v) {
+        this.x+=v.x;
+        this.y+=v.y;
+
+        return this;
+    },
+
+    plusNew : function (v) {
+         return new Vec(this.x+v.x, this.y+v.y);
+    },
+
+    minusEq : function (v) {
+        this.x-=v.x;
+        this.y-=v.y;
+
+        return this;
+    },
+
+    minusNew : function (v) {
+        return new Vec(this.x-v.x, this.y-v.y);
+    },
+
+    multiplyEq : function (scalar) {
+        this.x*=scalar;
+        this.y*=scalar;
+
+        return this;
+    },
+
+    multiplyNew : function (scalar) {
+        var returnvec = this.clone();
+        return returnvec.multiplyEq(scalar);
+    },
+
+    divideEq : function (scalar) {
+        this.x/=scalar;
+        this.y/=scalar;
+        return this;
+    },
+
+    divideNew : function (scalar) {
+        var returnvec = this.clone();
+        return returnvec.divideEq(scalar);
+    },
+
+    dot : function (v) {
+        return (this.x * v.x) + (this.y * v.y) ;
+    },
+
+    angle : function (useRadians) {
+        return Math.atan2(this.y,this.x) * (useRadians ? 1 : VecConst.TO_DEGREES);
+    },
+
+    rotate : function (angle, useRadians) {
+
+        var cosRY = Math.cos(angle * (useRadians ? 1 : VecConst.TO_RADIANS));
+        var sinRY = Math.sin(angle * (useRadians ? 1 : VecConst.TO_RADIANS));
+
+        VecConst.temp.copyFrom(this);
+
+        this.x= (VecConst.temp.x*cosRY)-(VecConst.temp.y*sinRY);
+        this.y= (VecConst.temp.x*sinRY)+(VecConst.temp.y*cosRY);
+
+        return this;
+    },
+
+    equals : function (v) {
+        return((this.x==v.x)&&(this.y==v.x));
+    },
+
+    isCloseTo : function (v, tolerance) {
+        if(this.equals(v)) return true;
+
+        VecConst.temp.copyFrom(this);
+        VecConst.temp.minusEq(v);
+
+        return(VecConst.temp.magnitudeSquared() < tolerance*tolerance);
+    },
+
+    rotateAroundPoint : function (point, angle, useRadians) {
+        VecConst.temp.copyFrom(this);
+        //trace("rotate around point "+t+" "+point+" " +angle);
+        VecConst.temp.minusEq(point);
+        //trace("after subtract "+t);
+        VecConst.temp.rotate(angle, useRadians);
+        //trace("after rotate "+t);
+        VecConst.temp.plusEq(point);
+        //trace("after add "+t);
+        this.copyFrom(VecConst.temp);
+
+    },
+
+    isMagLessThan : function (distance) {
+        return(this.magnitudeSquared()<distance*distance);
+    },
+
+    isMagGreaterThan : function (distance) {
+        return(this.magnitudeSquared()>distance*distance);
+    }
+};
+
+var VecConst = {
+    TO_DEGREES : 180 / Math.PI,
+    TO_RADIANS : Math.PI / 180,
+    temp : new Vec()
+};
 
 function Hex(q, r, s) {
     return {q: q, r: r, s: s};
@@ -159,7 +348,7 @@ function hex_to_pixel(layout, h)
     var origin = layout.origin;
     var x = (M.f0 * h.q + M.f1 * h.r) * size.x;
     var y = (M.f2 * h.q + M.f3 * h.r) * size.y;
-    return Point(x + origin.x, y + origin.y);
+    return new Vec(x + origin.x, y + origin.y);
 }
 
 function pixel_to_hex(layout, p)
@@ -167,7 +356,7 @@ function pixel_to_hex(layout, p)
     var M = layout.orientation;
     var size = layout.size;
     var origin = layout.origin;
-    var pt = Point((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
+    var pt = new Vec((p.x - origin.x) / size.x, (p.y - origin.y) / size.y);
     var q = M.b0 * pt.x + M.b1 * pt.y;
     var r = M.b2 * pt.x + M.b3 * pt.y;
     return Hex(q, r, -q - r);
@@ -178,7 +367,7 @@ function hex_corner_offset(layout, corner)
     var M = layout.orientation;
     var size = layout.size;
     var angle = 2.0 * Math.PI * (corner + M.start_angle) / 6;
-    return Point(size.x * Math.cos(angle), size.y * Math.sin(angle));
+    return new Vec(size.x * Math.cos(angle), size.y * Math.sin(angle));
 }
 
 function polygon_corners(layout, h)
@@ -188,7 +377,7 @@ function polygon_corners(layout, h)
     for (var i = 0; i < 6; i++)
     {
         var offset = hex_corner_offset(layout, i);
-        corners.push(Point(center.x + offset.x, center.y + offset.y));
+        corners.push(new Vec(center.x + offset.x, center.y + offset.y));
     }
     return corners;
 }
@@ -281,9 +470,9 @@ function test_hex_linedraw()
 function test_layout()
 {
     var h = Hex(3, 4, -7);
-    var flat = Layout(layout_flat, Point(10, 15), Point(35, 71));
+    var flat = Layout(layout_flat, new Vec(10, 15), new Vec(35, 71));
     equal_hex("layout", h, hex_round(pixel_to_hex(flat, hex_to_pixel(flat, h))));
-    var pointy = Layout(layout_pointy, Point(10, 15), Point(35, 71));
+    var pointy = Layout(layout_pointy, new Vec(10, 15), new Vec(35, 71));
     equal_hex("layout", h, hex_round(pixel_to_hex(pointy, hex_to_pixel(pointy, h))));
 }
 
