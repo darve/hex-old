@@ -1,13 +1,20 @@
 'use strict';
 
-var browserify  = require('browserify');
-var babelify    = require('babelify');
-var gulp        = require('gulp');
-var source      = require('vinyl-source-stream');
-var buffer      = require('vinyl-buffer');
-var uglify      = require('gulp-uglify');
-var sourcemaps  = require('gulp-sourcemaps');
-var gutil       = require('gulp-util');
+var browserify  = require('browserify'),
+    babelify    = require('babelify'),
+    gulp        = require('gulp'),
+    source      = require('vinyl-source-stream'),
+    buffer      = require('vinyl-buffer'),
+    uglify      = require('gulp-uglify'),
+    sourcemaps  = require('gulp-sourcemaps'),
+    gutil       = require('gulp-util'),
+    mocha       = require('mocha');
+
+gulp.task('default', function () {
+    return gulp.src('test.js', {read: false})
+        // gulp-mocha needs filepaths so you can't have any plugins before it
+        .pipe(mocha({reporter: 'nyan'}));
+});
 
 gulp.task('build', function () {
   // set up the browserify instance on a task basis
@@ -22,6 +29,11 @@ gulp.task('build', function () {
         .on('error', gutil.log)
     .pipe(sourcemaps.write('./'))
     .pipe(gulp.dest('./app/assets/scripts'));
+});
+
+gulp.task('test', function () {
+    return gulp.src('./tests/hex.js', {read: false})
+        .pipe(mocha({reporter: 'nyan', ui: 'bdd'}));
 });
 
 /**
