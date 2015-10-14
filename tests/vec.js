@@ -42,6 +42,7 @@ test('Vector multiplication', function(t){
     // Two tests per set
     t.plan(count * 2);
 
+    // Manually multiply the vector components then check if the library is producing the correct result
     for ( var i = 1; i <= count; i++) {
         vecA = new Vec(M.rand(3, 2), M.rand(3, 2));
         rand = M.rand(3, 2);
@@ -85,8 +86,14 @@ test('Vector normalisation', function(t) {
 
     for ( var i = 1; i <= count; i++) {
         vecA = new Vec(M.rand(15, 2), M.rand(15, 2));
-        t.ok(vecA.normalise().x <= 1, 'x value of normalised vector is less than 1: ' + vecA.x);
-        t.ok(vecA.normalise().y <= 1, 'y value of normalised vector is less than 1: ' + vecA.y);
+        t.ok(vecA.normalise().x <= 1, 'x value of normalised vector should be less than 1: ' + vecA.x);
+        t.ok(vecA.normalise().y <= 1, 'y value of normalised vector should be less than 1: ' + vecA.y);
     }
 });
 
+test('Vector proximity test (isCloseTo)', function(t){
+    t.plan(3);
+    t.ok(new Vec(3,3).isCloseTo(new Vec(1,1), 5), '(3,3) is within 5 distance of (1,1)');
+    t.notOk(new Vec(3,3).isCloseTo(new Vec(50,50), 5), '(3,3) is NOT within 5 distance of (50,50)');
+    t.ok(new Vec(3,3).isCloseTo(new Vec(3.1,3.1), 5), '(3,3) is within 5 distance of (3.1,3.1)');
+});
